@@ -15,9 +15,8 @@ jobs:
     timeout-minutes: 120
 
     env:
-      KERNEL_REPO: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
-      KERNEL_TAG: v7.3
-      KERNEL_BRANCH: omarchy7.3.0
+      KERNEL_REPO: https://github.com/aurora-silicon/linux.git
+      KERNEL_BRANCH: aurora7.3.0
       KERNEL_DIR: kernel-source
       CONFIG_FILE: configs/config
       PATCH_DIR: patches
@@ -65,7 +64,6 @@ jobs:
 
           git clone \
             --depth 1 \
-            --branch "$KERNEL_TAG" \
             "$KERNEL_REPO" \
             "$KERNEL_DIR"
 
@@ -116,7 +114,7 @@ jobs:
           cd "$KERNEL_DIR"
 
           KERNEL_VERSION="$(make -s kernelversion)"
-          PACKAGE_VERSION="${KERNEL_VERSION}-101omarchy1"
+          PACKAGE_VERSION="${KERNEL_VERSION}-101aurora1"
 
           echo "Kernel version: $KERNEL_VERSION"
           echo "Debian package version: $PACKAGE_VERSION"
@@ -165,7 +163,7 @@ jobs:
       - name: Upload Kernel and Debian Packages
         uses: actions/upload-artifact@v4
         with:
-          name: custom-wsl2-kernel-omarchy7.3.0-arm64
+          name: custom-wsl2-kernel-aurora7.3.0-arm64
           path: dist/
           if-no-files-found: error
           retention-days: 30
