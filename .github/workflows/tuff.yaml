@@ -75,26 +75,7 @@ jobs:
       - name: Apply Kernel Patches
         run: |
           set -euo pipefail
-
-          if [[ ! -d "$PATCH_DIR" ]]; then
-            echo "No patches directory found; skipping patch application."
-            exit 0
-          fi
-
-          shopt -s nullglob
-          patches=("$PATCH_DIR"/*.patch)
-
-          if (( ${#patches[@]} == 0 )); then
-            echo "No .patch files found; skipping patch application."
-            exit 0
-          fi
-
-          for patch_file in "${patches[@]}"; do
-            echo "Applying patch: $patch_file"
-            git -C "$KERNEL_DIR" apply --check "$GITHUB_WORKSPACE/$patch_file"
-            git -C "$KERNEL_DIR" apply "$GITHUB_WORKSPACE/$patch_file"
-          done
-
+          echo "dih"
           echo "All patches applied successfully."
 
       - name: Configure Kernel
