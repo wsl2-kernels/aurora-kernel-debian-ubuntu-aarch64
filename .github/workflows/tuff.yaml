@@ -19,7 +19,6 @@ jobs:
       KERNEL_BRANCH: aurora7.3.0
       KERNEL_DIR: kernel-source
       CONFIG_FILE: configs/config
-      PATCH_DIR: patches
 
     steps:
       - name: Checkout Your Repository
