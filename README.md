@@ -1,11 +1,11 @@
-# xanmod-kernel-WSL2
+# Omarchy-kernel-Debian-Ubuntu-aarch64
 
 ![Xanmod MAIN](https://github.com/Locietta/xanmod-kernel-WSL2/actions/workflows/MAIN.yml/badge.svg?branch=main)
 ![Xanmod LTS](https://github.com/Locietta/xanmod-kernel-WSL2/actions/workflows/LTS.yml/badge.svg?branch=main)
 ![](https://img.shields.io/github/license/Locietta/xanmod-kernel-WSL2)
 ![version](https://img.shields.io/github/v/release/Locietta/xanmod-kernel-WSL2)
 
-An **unofficial** [XanMod](https://gitlab.com/xanmod/linux) kernel port for **Windows Subsystem for Linux 2 (WSL2)**, featuring:
+An **unofficial** [XanMod](https://gitlab.com/xanmod/linux) kernel port for **Debian/Ubuntu aarch64**, featuring:
 
 - **Microsoft's dxgkrnl** patches for GPU support
 - **Compiled with Clang + ThinLTO** for additional optimizations

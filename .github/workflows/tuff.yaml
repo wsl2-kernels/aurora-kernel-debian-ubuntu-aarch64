@@ -1,0 +1,161 @@
+name: Build Custom WSL2 Kernel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Linux Kernel (ARM64)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+
+    env:
+      KERNEL_REPO: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+      KERNEL_TAG: v7.3
+      KERNEL_BRANCH: omarchy7.3.0
+      KERNEL_DIR: kernel-source
+      CONFIG_FILE: configs/config
+      PATCH_DIR: patches
+
+    steps:
+      - name: Checkout Your Repository
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            flex \
+            bison \
+            libssl-dev \
+            libelf-dev \
+            libncurses-dev \
+            bc \
+            cpio \
+            kmod \
+            dwarves \
+            git \
+            rsync \
+            fakeroot \
+            dpkg-dev \
+            python3 \
+            pahole
+
+      - name: Clone Linux Stable Kernel Source
+        run: |
+          set -euo pipefail
+
+          git clone \
+            --depth 1 \
+            --branch "$KERNEL_TAG" \
+            "$KERNEL_REPO" \
+            "$KERNEL_DIR"
+
+          cd "$KERNEL_DIR"
+          git checkout -b "$KERNEL_BRANCH"
+
+          echo "Kernel commit: $(git rev-parse HEAD)"
+          echo "Kernel version: $(make -s kernelversion)"
+
+      - name: Apply Kernel Patches
+        run: |
+          set -euo pipefail
+
+          if [[ ! -d "$PATCH_DIR" ]]; then
+            echo "No patches directory found; skipping patch application."
+            exit 0
+          fi
+
+          shopt -s nullglob
+          patches=("$PATCH_DIR"/*.patch)
+
+          if (( ${#patches[@]} == 0 )); then
+            echo "No .patch files found; skipping patch application."
+            exit 0
+          fi
+
+          for patch_file in "${patches[@]}"; do
+            echo "Applying patch: $patch_file"
+            git -C "$KERNEL_DIR" apply --check "$GITHUB_WORKSPACE/$patch_file"
+            git -C "$KERNEL_DIR" apply "$GITHUB_WORKSPACE/$patch_file"
+          done
+
+          echo "All patches applied successfully."
+
+      - name: Configure Kernel
+        run: |
+          set -euo pipefail
+
+          test -f "$CONFIG_FILE"
+          cp "$CONFIG_FILE" "$KERNEL_DIR/.config"
+
+          make -C "$KERNEL_DIR" ARCH=arm64 olddefconfig
+
+      - name: Compile Kernel and Debian Packages
+        run: |
+          set -euo pipefail
+
+          cd "$KERNEL_DIR"
+
+          KERNEL_VERSION="$(make -s kernelversion)"
+          PACKAGE_VERSION="${KERNEL_VERSION}-101omarchy1"
+
+          echo "Kernel version: $KERNEL_VERSION"
+          echo "Debian package version: $PACKAGE_VERSION"
+
+          make \
+            ARCH=arm64 \
+            -j"$(nproc)" \
+            KDEB_PKGVERSION="$PACKAGE_VERSION" \
+            bindeb-pkg
+
+          test -s arch/arm64/boot/Image
+
+      - name: Prepare Artifacts
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+
+          cp "$KERNEL_DIR/arch/arm64/boot/Image" dist/Image
+
+          git -C "$KERNEL_DIR" rev-parse HEAD \
+            > dist/kernel-commit.txt
+
+          make -s -C "$KERNEL_DIR" ARCH=arm64 kernelrelease \
+            > dist/kernel-version.txt
+
+          sha256sum dist/Image > dist/Image.sha256
+
+          find . -maxdepth 1 -type f -name '*.deb' \
+            -exec cp -t dist/ {} +
+
+          if ! find dist -maxdepth 1 -type f -name '*.deb' \
+            -print -quit | grep -q .; then
+            echo "Error: no Debian packages were generated."
+            exit 1
+          fi
+
+          (
+            cd dist
+            sha256sum ./*.deb > deb-packages.sha256
+          )
+
+          echo "Generated artifacts:"
+          ls -lh dist/
+
+      - name: Upload Kernel and Debian Packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: custom-wsl2-kernel-omarchy7.3.0-arm64
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
